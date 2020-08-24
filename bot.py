@@ -25,7 +25,7 @@ def add_prompt(update,context):
 def add_place(update, context):
     place = {}
     place['name'] = update.message.text
-    place['rating'] = ''
+    place['rating'] = 0.0
 
     if ('visited' not in context.user_data):
         context.user_data['visited'] = []
@@ -34,12 +34,13 @@ def add_place(update, context):
         for loc in context.user_data['visited']:
             if (loc['name'] == place['name']):
                 loc['num_visits'] += 1
+        update.message.reply_text('Visit added for ' + place['name'] + '.')
     else:
         place['num_visits'] = 1
         context.user_data['visited'].append(place)
         update.message.reply_text('Added ' + place['name'] + ' to your journal.')
 
-    update.message.reply_text('Rate the place with the following syntax: /rate <place> <rating>')
+    update.message.reply_text('Add a rating with the following syntax: /rate <place> <rating>')
     return ConversationHandler.END
 
 # Rate place
@@ -56,7 +57,10 @@ def rate_place(update, context):
 def rate_index(update, context, target, rating):
     for data in context.user_data['visited']:
         if (data['name']==target):
-            data['rating'] = rating
+            if (data['rating'] != 0.0):
+                data['rating'] = (float(data['rating']) + float(rating)) / data['num_visits'] # average ratings
+            else:
+                data['rating'] = rating
         else:
             continue
     update.message.reply_text('Rating recorded!')
@@ -95,10 +99,10 @@ def sort_list_places(update, context):
     else:
         newlist = sorted(context.user_data['visited'], key = lambda x: float(x['rating']), reverse=True)
         for place in newlist[:5]:
-            result = place['name'] + ' ' + place['rating']
+            result = place['name'] + ' ' + str(place['rating']) + '/10'
             output += result
             output += '\n'
-    update.message.reply_text('Top 5 Rated Places:\n' + output)
+    update.message.reply_text('Top 5 Rated Places (Average Ratings):\n' + output)
 
 # Most visited Places
 def sort_num_visit(update, context):
@@ -138,22 +142,13 @@ conv_handler = ConversationHandler(
     states = {
         ADD_PROMPT: [MessageHandler(Filters.text, add_prompt)],
         ADD: [MessageHandler(Filters.text, add_place)],
-        RATE: [MessageHandler(Filters.text & ~Filters.command, rate_place)]
-
-        # PHOTO: [MessageHandler(Filters.photo, photo),
-        #             CommandHandler('skip', skip_photo)],
-        #
-        # LOCATION: [MessageHandler(Filters.location, location),
-        #                CommandHandler('skip', skip_location)],
-        #
-        # BIO: [MessageHandler(Filters.text & ~Filters.command, bio)]
+        RATE: [MessageHandler(Filters.text, rate_place)]
     },
 
     fallbacks = []
 )
 
 updater.dispatcher.add_handler(conv_handler)
-
 
 updater.start_polling()
 updater.idle()
