@@ -3,5 +3,6 @@ An automated bot created using Python and the Telegram Bot API that allows users
 
 Progress Log
 
-08/24/20: Aggregate user ratings for locations with multiple visits \n
+08/24/20: Aggregate user ratings for locations with multiple visits
+
 08/25/20: Created a new bucket list component that allows users to add wishlisted places (places are removed automatically upon visit)
