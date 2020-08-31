@@ -2,7 +2,7 @@ import telebot
 from telebot import types
 import time
 from telegram.ext import Updater, CommandHandler, ConversationHandler, MessageHandler, RegexHandler, Filters, PicklePersistence
-ADD, RATE, ADD_PROMPT, BUCKET, RESET = range(5)
+ADD, RATE, ADD_PROMPT, WISHLIST, RESET = range(5)
 
 # Functionalities to add:
     # Journalling capabilities - add notes for each rating and a date for the rating
@@ -14,7 +14,6 @@ def hello(update, context):
     reply = update.message.from_user.first_name
     update.message.reply_text('Hello {}'.format(reply))
     update.message.reply_text('Welcome to the food journal bot. Below are a bunch of commands you can use:\n' + '/add: Add a restaurant to your journal / add a visit to a visited restaurant\n' + '/rate <place> <rating>: Rates a specified restaurant out of 10\n' + '/list: List all the places you have been to\n' + '/sort_rating: Lists the top 5 highest rated places you haveve been to\n' + '/sort_visited: Lists the top 5 most visited places you have been to\n' + '/bucket: Add a place to your bucket list\n' + '/show_bucket_list: Show your wishlist!')
-    return ADD_PROMPT
 
 updater = Updater(token=bot_token, persistence=persistence, use_context=True)
 updater.dispatcher.add_handler(CommandHandler('hello', hello))
@@ -49,13 +48,17 @@ def add_place(update, context):
                 update.message.reply_text('Removed ' + place['name'] + ' from your bucket list. Nice!')
                 context.user_data['bucket_list'].remove(place['name'])
 
-    update.message.reply_text('Add a rating with the following syntax: /rate <place> <rating>')
+    update.message.reply_text('Add a rating with the following syntax: /rate ' + place['name'] + ' <rating>')
     return ConversationHandler.END
 
 # Rate place
 def rate_place(update, context):
     rating = update.message.text.split(' ')[-1]
     place = ' '.join(update.message.text.split(' ')[1:-1])
+
+    if (int(rating) < 0 or int(rating) > 10):
+        update.message.reply_text('Your rating is out of range (0-10).')
+        return
 
     if (not any(x['name'] == place for x in context.user_data['visited'])):
         update.message.reply_text(place + ' is not your journal.')
@@ -133,7 +136,7 @@ def sort_num_visit(update, context):
 # Add to bucket list
 def bucket_list_prompt(update, context):
     update.message.reply_text('Where do you want to go?')
-    return BUCKET
+    return WISHLIST
 
 def add_bucket_list(update, context):
     resp = update.message.text
@@ -191,7 +194,7 @@ conv_handler = ConversationHandler(
         ADD_PROMPT: [MessageHandler(Filters.text, add_prompt)],
         ADD: [MessageHandler(Filters.text, add_place)],
         RATE: [MessageHandler(Filters.text, rate_place)],
-        BUCKET: [MessageHandler(Filters.text, add_bucket_list)],
+        WISHLIST: [MessageHandler(Filters.text, add_bucket_list)],
     },
 
     fallbacks = []
